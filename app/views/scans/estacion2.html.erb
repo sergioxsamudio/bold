@@ -1,0 +1,102 @@
+<div class="min-h-screen bg-gray-100 flex flex-col items-center p-4 space-y-4">
+
+  <h1 class="text-xl font-bold text-gray-800 text-center">Estación 2</h1>
+
+  <!-- Input para la cédula -->
+  <div class="w-full max-w-sm">
+    <label for="cedula" class="block text-sm font-medium text-gray-700 mb-1">Cédula del participante:</label>
+    <input type="text" id="cedula" placeholder="Ingrese la cédula"
+           class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+    />
+  </div>
+
+  <!-- Selector de porcentaje -->
+  <div class="w-full max-w-sm">
+    <label for="porcentaje" class="block text-sm font-medium text-gray-700 mb-1">Porcentaje a aplicar:</label>
+    <select id="porcentaje"
+            class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+      <option value="">-- Selecciona un porcentaje --</option>
+      <option value="10">10%</option>
+      <option value="5">5%</option>
+      <option value="2">2%</option>
+      <option value="0">0%</option>
+    </select>
+  </div>
+
+  <!-- Escáner QR -->
+  <div class="w-full max-w-sm">
+    <label class="block text-sm font-medium text-gray-700 mb-1">Escanea el QR:</label>
+    <div id="reader" class="rounded-lg border border-gray-300 shadow-sm"></div>
+  </div>
+
+  <!-- Botón para actualizar -->
+  <button id="actualizarBtn"
+          class="w-full max-w-sm bg-blue-600 text-white py-2 px-4 rounded-lg shadow-md disabled:opacity-50"
+          disabled>
+    Actualizar monto
+  </button>
+
+</div>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+  let qrContent = null;
+  const CONSTANTE_BASE = 50000; // Valor constante para el cálculo
+
+  function checkFormReady() {
+    const cedula = document.getElementById('cedula').value.trim();
+    const porcentaje = document.getElementById('porcentaje').value;
+    const button = document.getElementById('actualizarBtn');
+    if (cedula !== "" && qrContent !== null && porcentaje !== "") {
+      button.disabled = false;
+    } else {
+      button.disabled = true;
+    }
+  }
+
+  document.getElementById('cedula').addEventListener('input', checkFormReady);
+  document.getElementById('porcentaje').addEventListener('change', checkFormReady);
+
+  function onScanSuccess(decodedText, decodedResult) {
+    if (qrContent === null) {
+      qrContent = decodedText;
+      alert("QR capturado: " + decodedText);
+      checkFormReady();
+    }
+  }
+
+  var html5QrcodeScanner = new Html5QrcodeScanner(
+    "reader", { fps: 10, qrbox: { width: 250, height: 250 } });
+  html5QrcodeScanner.render(onScanSuccess);
+
+  document.getElementById('actualizarBtn').addEventListener('click', function() {
+    const cedula = document.getElementById('cedula').value.trim();
+    const porcentaje = parseFloat(document.getElementById('porcentaje').value);
+
+    // Cálculo del valor adicional
+    const porcentajeExtra = (CONSTANTE_BASE * (porcentaje / 100));
+    const montoFinal = CONSTANTE_BASE + porcentajeExtra;
+
+    fetch('/scans', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': "<%= form_authenticity_token %>"
+      },
+      body: JSON.stringify({
+        scan: {
+          content: qrContent,
+          cedula: cedula,
+          monto_adicional: montoFinal
+        }
+      })
+    }).then(response => {
+      if (response.ok) {
+        alert(`Se sumó al monto adicional: $${montoFinal.toLocaleString('es-CO')}`);
+        location.reload();
+      } else {
+        alert("Error al guardar el registro.");
+      }
+    });
+  });
+</script>

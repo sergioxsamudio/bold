@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TV Display</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @keyframes fadeInScale {
+      0% {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    .animate-total {
+      animation: fadeInScale 1.5s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="bg-black text-white flex flex-col justify-center items-center min-h-screen p-4 space-y-10">
+
+  <% if !@mostrar_resultado %>
+    <h1 class="text-4xl md:text-6xl font-bold mb-6 text-center">Buscar Participante</h1>
+
+    <% if flash.now[:alert] %>
+      <p class="text-red-500 text-2xl mb-4"><%= flash.now[:alert] %></p>
+    <% end %>
+
+    <%= form_with url: "/tv_display", method: :post, local: true, data: { turbo: false } do |form| %>
+      <div class="flex flex-col items-center space-y-4">
+        <%= form.label :cedula, "Ingrese la cédula:", class: "text-xl" %>
+        <%= form.text_field :cedula, placeholder: "Cédula", class: "text-black px-4 py-2 rounded text-2xl" %>
+        <%= form.submit "Buscar", class: "bg-blue-600 text-white px-6 py-3 rounded text-2xl mt-4" %>
+      </div>
+    <% end %>
+
+  <% elsif @scan.present? %>
+    <h1 class="text-5xl font-extrabold mb-8 text-center">Resultados para: <%= @scan.cedula %></h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+      <div>
+        <p class="text-3xl mb-2">Valor Inicial</p>
+        <p class="text-5xl text-blue-400 font-bold">
+          <%= number_to_currency(@scan.content.to_i, unit: "$", delimiter: ".", precision: 0) %>
+        </p>
+      </div>
+
+      <div>
+        <p class="text-3xl mb-2">Monto Adicional</p>
+        <p class="text-5xl text-green-400 font-bold">
+          <%= number_to_currency(@scan.monto_adicional.to_i, unit: "$", delimiter: ".", precision: 0) %>
+        </p>
+      </div>
+
+      <div>
+        <p class="text-3xl mb-2">Monto Aumentado</p>
+        <p class="text-5xl text-yellow-400 font-bold">
+          <%= number_to_currency(@monto_final - @scan.content.to_i - @scan.monto_adicional.to_i, unit: "$", delimiter: ".", precision: 0) %>
+        </p>
+      </div>
+    </div>
+
+    <!-- MONTO FINAL CON ANIMACIÓN CSS -->
+    <div class="mt-12 text-center">
+      <p class="text-4xl mb-4">Monto Final Total :</p>
+      <p class="text-7xl text-pink-500 font-extrabold animate-total">
+        <%= number_to_currency(@monto_final, unit: "$", delimiter: ".", precision: 0) %>
+      </p>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        // Solo para asegurar que la animación se active
+        console.log("Monto final: <%= number_to_currency(@monto_final, unit: '$', delimiter: '.', precision: 0) %>");
+      });
+    </script>
+
+  <% end %>
+
+</body>
+</html>
+
+
+
